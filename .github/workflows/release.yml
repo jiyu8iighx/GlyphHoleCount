@@ -1,0 +1,61 @@
+name: Release Binaries
+
+on:
+  workflow_dispatch:  # This allows the workflow to be manually triggered
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Rename and Upload Binaries
+        run: |
+          # Create a release directory
+          mkdir -p release
+
+          # Rename and move the binaries to the release directory
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+              mv target/release/your_crate_name release/your_crate_name-linux
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+              mv target/release/your_crate_name.exe release/your_crate_name-windows.exe
+          fi
+
+      - name: Create Release
+        id: create_release
+        run: |
+          # Get the current date and time
+          datetime=$(date +"%Y-%m-%d %H:%M:%S")
+          tag_name="nightly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${datetime// /_}"
+          release_name="Release nightly - ${datetime}"
+
+          echo "Tag Name: $tag_name"
+          echo "Release Name: $release_name"
+
+          echo "::set-output name=tag_name::$tag_name"
+          echo "::set-output name=release_name::$release_name"
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.create_release.outputs.tag_name }}
+          release_name: ${{ steps.create_release.outputs.release_name }}
+          draft: false
+          prerelease: false
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

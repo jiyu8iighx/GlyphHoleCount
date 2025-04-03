@@ -24,16 +24,15 @@ jobs:
       - name: Build
         run: cargo build --release
 
-      - name: Rename and Upload Binaries
+      - name: Rename Binaries
+        env:
+          CRATE_NAME: glyph-hole-count  # Define the crate name as an environment variable
         run: |
-          # Create a release directory
           mkdir -p release
-
-          # Rename and move the binaries to the release directory
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-              mv target/release/your_crate_name release/your_crate_name-linux
+              mv target/release/$CRATE_NAME release/$CRATE_NAME-linux
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-              mv target/release/your_crate_name.exe release/your_crate_name-windows.exe
+              mv target/release/$CRATE_NAME.exe release/$CRATE_NAME-windows.exe
           fi
 
       - name: Create Release

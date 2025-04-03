@@ -136,8 +136,8 @@ fn 统计洞数() {
 
     // println!("{:?}", zeros)
     // 保存结果到文件
-    save_vector_to_file(&ones, "../out/1.txt").unwrap();
     save_vector_to_file(&zeros, "../out/0.txt").unwrap();
+    save_vector_to_file(&ones, "../out/1.txt").unwrap();
 }
 
 fn main() {

@@ -73,14 +73,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "betti"
-version = "0.1.0"
-dependencies = [
- "image",
- "rayon",
-]
-
-[[package]]
 name = "bit_field"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -278,6 +270,14 @@ checksum = "3fb2d69b19215e18bb912fa30f7ce15846e301408695e44e0ef719f1da9e19f2"
 dependencies = [
  "color_quant",
  "weezl",
+]
+
+[[package]]
+name = "glyph-hole-count"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "rayon",
 ]
 
 [[package]]

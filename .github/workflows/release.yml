@@ -27,30 +27,31 @@ jobs:
       - name: Build
         run: cargo build --release
 
+      - name: Create Release Directory
+        shell: bash
+        run: mkdir -p release
+
       - name: Rename Binaries
+        shell: bash
         env:
-          CRATE_NAME: glyph-hole-count  # Define the crate name as an environment variable
+          CRATE_NAME: glyph-hole-count
         run: |
-          mkdir -p release
-          if [ "${{ runner.os }}" == "Linux" ]; then
-              mv target/release/$CRATE_NAME release/$CRATE_NAME-linux
-          elif [ "${{ runner.os }}" == "Windows" ]; then
-              mv target/release/$CRATE_NAME.exe release/$CRATE_NAME-windows.exe
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            cp "target/release/$CRATE_NAME" "release/$CRATE_NAME-linux"
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            cp "target/release/$CRATE_NAME.exe" "release/$CRATE_NAME-windows.exe"
           fi
 
       - name: Create Release
         id: create_release
+        shell: bash
         run: |
-          # Get the current date and time
-          datetime=$(date +"%Y%M%D%H%M%S")
-          tag_name="nightly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${datetime// /_}"
+          datetime=$(date -u '+%Y%m%d_%H%M%S')
+          tag_name="nightly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${datetime}"
           release_name="Release nightly - ${datetime}"
-
-          echo "Tag Name: $tag_name"
-          echo "Release Name: $release_name"
-
-          echo "::set-output name=tag_name::$tag_name"
-          echo "::set-output name=release_name::$release_name"
+          
+          echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
+          echo "release_name=${release_name}" >> $GITHUB_OUTPUT
 
       - name: Upload Release
         uses: softprops/action-gh-release@v1
@@ -59,5 +60,6 @@ jobs:
           release_name: ${{ steps.create_release.outputs.release_name }}
           draft: false
           prerelease: false
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Optional, but recommended for clarity

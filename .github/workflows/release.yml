@@ -32,9 +32,9 @@ jobs:
           CRATE_NAME: glyph-hole-count  # Define the crate name as an environment variable
         run: |
           mkdir -p release
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if [ "${{ runner.os }}" == "Linux" ]; then
               mv target/release/$CRATE_NAME release/$CRATE_NAME-linux
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+          elif [ "${{ runner.os }}" == "Windows" ]; then
               mv target/release/$CRATE_NAME.exe release/$CRATE_NAME-windows.exe
           fi
 

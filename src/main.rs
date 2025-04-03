@@ -2,8 +2,10 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use image::{DynamicImage, GenericImageView};
+use rayon::prelude::*; // 添加 rayon 的并行支持
+use rayon::ThreadPoolBuilder;
 
-fn dfs(grid: &mut Vec<Vec<i32>>, visited: &mut Vec<Vec<bool>>, i: usize, j: usize) {
+fn dfs(grid: &mut Vec<Vec<u8>>, visited: &mut Vec<Vec<bool>>, i: usize, j: usize) {
     let rows = grid.len();
     let cols = grid[0].len();
     // 检查越界或已访问或非1区域
@@ -18,7 +20,7 @@ fn dfs(grid: &mut Vec<Vec<i32>>, visited: &mut Vec<Vec<bool>>, i: usize, j: usiz
     dfs(grid, visited, i, j.wrapping_sub(1));
 }
 
-fn compute_betti_0(grid: &mut Vec<Vec<i32>>) -> i32 {
+fn compute_betti_0(grid: &mut Vec<Vec<u8>>) -> u8 {
     if grid.is_empty() || grid[0].is_empty() {
         return 0;
     }
@@ -38,7 +40,7 @@ fn compute_betti_0(grid: &mut Vec<Vec<i32>>) -> i32 {
     count - 1
 }
 
-fn save_vector_to_file(data: &Vec<i32>, filename: &str) -> io::Result<()> {
+fn save_vector_to_file(data: &Vec<u8>, filename: &str) -> io::Result<()> {
     let mut out_file = File::create(filename)?;
     for &num in data {
         writeln!(out_file, "{}", num)?;
@@ -78,39 +80,63 @@ fn 写webp(pixels: &Vec<Vec<u8>>, filename: &str) -> image::ImageResult<()> {
 }
 
 fn 统计洞数() {
-    let 开始 = 0;
-    // let 数目 = 1161;
-    // let 数目 = 8109;
-    let 数目 = 8110;
-    let mut 一维洞 = vec![0; 数目];
-    let mut 零维洞 = vec![0; 数目];
+    let 开始: usize = 0;
+    let 数目: usize = 8110; // 假设这是要处理的图像数量
 
-    for 序号 in 开始..数目 {
-        let aa = format!("../webp/{}.webp", 序号);
-        let 输入 = 读取webp(&aa);
-        // debug(序号); // 假设debug函数已实现
-        let mut 形状 = vec![vec![0; 输入.len()]; 输入[0].len()];
-        let mut 补形状 = vec![vec![0; 输入.len()]; 输入[0].len()];
+    // 使用并行迭代处理每个图像，并记录索引
+    let mut data: Vec<(usize, u8, u8)> = (开始..数目)
+        .into_par_iter()
+        .map(|序号| {
+            let aa = format!("../webp/{}.webp", 序号);
+            let 输入 = 读取webp(&aa);
+            
+            let mut 形状: Vec<Vec<u8>> = vec![vec![0; 输入.len()]; 输入[0].len()];
+            let mut 补形状: Vec<Vec<u8>> = vec![vec![0; 输入.len()]; 输入[0].len()];
 
-        for x in 0..输入.len() {
-            for y in 0..输入[0].len() {
-                if 输入[x][y] < 186 {
-                    形状[x][y] = 1;
-                    补形状[x][y] = 0;
-                } else {
-                    形状[x][y] = 0;
-                    补形状[x][y] = 1;
+            for x in 0..输入.len() {
+                for y in 0..输入[0].len() {
+                    if 输入[x][y] < 186 {
+                        形状[x][y] = 1;
+                        补形状[x][y] = 0;
+                    } else {
+                        形状[x][y] = 0;
+                        补形状[x][y] = 1;
+                    }
                 }
             }
-        }
-        一维洞[序号] = compute_betti_0(&mut 补形状);
-        零维洞[序号] = compute_betti_0(&mut 形状);
-        写webp(&输入, &format!("../modified/{}.png", 序号)).unwrap();
-    }
-    save_vector_to_file(&一维洞, "../out/1.txt").unwrap();
-    save_vector_to_file(&零维洞, "../out/0.txt").unwrap();
+            
+            // 计算洞数
+            (序号, compute_betti_0(&mut 形状), compute_betti_0(&mut 补形状)) // 返回索引和结果
+        })
+        .collect::<Vec<(usize, u8, u8)>>(); // 收集为元组向量
+
+    // 根据索引排序
+    data.sort_by_key(|(index, _, _)| *index); // 按照索引排序
+
+    let mut zeros = vec![];
+    let mut ones = vec![];
+    data
+        .into_iter()
+        .for_each(|(_, zero, one)| {
+            zeros.push(zero);
+            ones.push(one);
+        });
+
+    // 保存结果到文件
+    save_vector_to_file(&ones, "../out/1.txt").unwrap();
+    save_vector_to_file(&zeros, "../out/0.txt").unwrap();
 }
 
 fn main() {
-    统计洞数();
+    // 初始化 rayon 的线程池，设置线程数
+    let num_threads = 1; // 设置所需的线程数
+    let pool = ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .build()
+        .unwrap();
+
+    // 使用自定义线程池
+    pool.install(|| {
+        统计洞数(); // 调用处理函数
+    });
 }

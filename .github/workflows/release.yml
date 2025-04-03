@@ -42,7 +42,7 @@ jobs:
         id: create_release
         run: |
           # Get the current date and time
-          datetime=$(date +"%Y-%m-%d %H:%M:%S")
+          datetime=$(date +"%Y%M%D%H%M%S")
           tag_name="nightly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${datetime// /_}"
           release_name="Release nightly - ${datetime}"
 

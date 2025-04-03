@@ -5,19 +5,31 @@ use image::{DynamicImage, GenericImageView};
 use rayon::prelude::*; // 添加 rayon 的并行支持
 use rayon::ThreadPoolBuilder;
 
-fn dfs(grid: &mut Vec<Vec<u8>>, visited: &mut Vec<Vec<bool>>, i: usize, j: usize) {
+fn dfs_iterative(grid: &mut Vec<Vec<u8>>, visited: &mut Vec<Vec<bool>>, start_i: usize, start_j: usize) {
     let rows = grid.len();
     let cols = grid[0].len();
-    // 检查越界或已访问或非1区域
-    if i >= rows || j >= cols || grid[i][j] != 1 || visited[i][j] {
-        return;
+    
+    // 创建一个栈来存储待访问的节点
+    let mut stack = vec![(start_i, start_j)];
+
+    // 定义四个方向（上下左右）
+    let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    while let Some((i, j)) = stack.pop() {
+        // 检查越界或已访问或非1区域
+        if i >= rows || j >= cols || grid[i][j] != 1 || visited[i][j] {
+            continue;
+        }
+
+        visited[i][j] = true; // 标记为已访问
+
+        // 将相邻的未访问节点推入栈中
+        for &(di, dj) in &directions {
+            let new_i = (i as isize + di) as usize;
+            let new_j = (j as isize + dj) as usize;
+            stack.push((new_i, new_j));
+        }
     }
-    visited[i][j] = true; // 标记为已访问
-    // 递归访问上下左右四个方向（4邻域）
-    dfs(grid, visited, i + 1, j);
-    dfs(grid, visited, i.wrapping_sub(1), j);
-    dfs(grid, visited, i, j + 1);
-    dfs(grid, visited, i, j.wrapping_sub(1));
 }
 
 fn compute_betti_0(grid: &mut Vec<Vec<u8>>) -> u8 {
@@ -32,7 +44,7 @@ fn compute_betti_0(grid: &mut Vec<Vec<u8>>) -> u8 {
     for i in 0..rows {
         for j in 0..cols {
             if grid[i][j] == 1 && !visited[i][j] {
-                dfs(grid, &mut visited, i, j); // 标记整个连通区域
+                dfs_iterative(grid, &mut visited, i, j); // 标记整个连通区域
                 count += 1;                     // 发现新连通分量
             }
         }
@@ -113,6 +125,8 @@ fn 统计洞数() {
     // 根据索引排序
     data.sort_by_key(|(index, _, _)| *index); // 按照索引排序
 
+    // data.into_iter().for_each(|d| println!("{:?}", d));
+
     let mut zeros = vec![];
     let mut ones = vec![];
     data
@@ -122,6 +136,7 @@ fn 统计洞数() {
             ones.push(one);
         });
 
+    // println!("{:?}", zeros)
     // 保存结果到文件
     save_vector_to_file(&ones, "../out/1.txt").unwrap();
     save_vector_to_file(&zeros, "../out/0.txt").unwrap();
@@ -129,7 +144,7 @@ fn 统计洞数() {
 
 fn main() {
     // 初始化 rayon 的线程池，设置线程数
-    let num_threads = 1; // 设置所需的线程数
+    let num_threads = 32; // 设置所需的线程数
     let pool = ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build()
